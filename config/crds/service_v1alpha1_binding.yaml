@@ -27,6 +27,10 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            secretRef:
+              description: SecretRef is a reference to a Secret containing the credentials
+              type: string
           type: object
         status:
           type: object

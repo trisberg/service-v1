@@ -23,9 +23,11 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // BindingSpec defines the desired state of Binding
+// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+// Important: Run "make" to regenerate code after modifying this file
 type BindingSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// SecretRef is a reference to a Secret containing the credentials
+	SecretRef string `json:"secretRef,omitempty"`
 }
 
 // BindingStatus defines the observed state of Binding
