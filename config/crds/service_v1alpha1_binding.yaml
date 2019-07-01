@@ -28,6 +28,12 @@ spec:
           type: object
         spec:
           properties:
+            host:
+              description: Host is the hostname or IP address for the service
+              type: string
+            port:
+              description: Port is the port used by the service
+              type: string
             secretRef:
               description: SecretRef is a reference to a Secret containing the credentials
               type: string

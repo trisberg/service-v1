@@ -28,6 +28,10 @@ import (
 type BindingSpec struct {
 	// SecretRef is a reference to a Secret containing the credentials
 	SecretRef string `json:"secretRef,omitempty"`
+	// Host is the hostname or IP address for the service
+	Host string `json:"host,omitempty"`
+	// Port is the port used by the service
+	Port string `json:"port,omitempty"`
 }
 
 // BindingStatus defines the observed state of Binding
