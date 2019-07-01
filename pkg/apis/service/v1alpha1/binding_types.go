@@ -26,8 +26,14 @@ import (
 // INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 // Important: Run "make" to regenerate code after modifying this file
 type BindingSpec struct {
+	// URI is the service URI that can be used to connect to the service
+	URI string `json:"uri,omitempty"`
 	// SecretRef is a reference to a Secret containing the credentials
 	SecretRef string `json:"secretRef,omitempty"`
+	// PasswordKey is the key for the password in the secret specified by SecretRef
+	PasswordKey string `json:"passwordKey,omitempty"`
+	// Host is the hostname or IP address for the service
+	Username string `json:"username,omitempty"`
 	// Host is the hostname or IP address for the service
 	Host string `json:"host,omitempty"`
 	// Port is the port used by the service
