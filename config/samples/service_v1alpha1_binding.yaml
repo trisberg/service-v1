@@ -1,0 +1,9 @@
+apiVersion: service.projectriff.io/v1alpha1
+kind: Binding
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: binding-sample
+spec:
+  # Add fields here
+  foo: bar
