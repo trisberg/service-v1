@@ -20,7 +20,6 @@ import (
 	"reflect"
 
 	servicev1alpha1 "github.com/trisberg/service/pkg/apis/service/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,8 +68,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by Binding - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+	// Uncomment watch a Secret created by Binding - change this for objects you create
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &servicev1alpha1.Binding{},
 	})
@@ -114,39 +113,42 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// TODO(user): Change this to be the object type created by your controller
 	// Define the desired Deployment object
-	deploy := &appsv1.Deployment{
+	vcap := &corev1.Secret{
+		Type: corev1.SecretTypeOpaque,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-deployment",
+			Name:      instance.Name + "-credentials",
 			Namespace: instance.Namespace,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx",
-						},
-					},
-				},
-			},
+		StringData: map[string]string{
+			"name": instance.Name,
 		},
 	}
-	if err := controllerutil.SetControllerReference(instance, deploy, r.scheme); err != nil {
+	credentials := "{\"name\": \"" + instance.Name + "\""
+	if instance.Spec.URI != "" {
+		credentials += ", \"uri\": \"" + instance.Spec.URI + "\""
+	}
+	if instance.Spec.Username != "" {
+		credentials += ", \"username\": \"" + instance.Spec.Username + "\""
+	}
+	if instance.Spec.Host != "" {
+		credentials += ", \"host\": \"" + instance.Spec.Host + "\""
+	}
+	if instance.Spec.Port != "" {
+		credentials += ", \"port\": " + instance.Spec.Port
+	}
+	credentials += "}"
+	vcap.StringData["credentials"] = credentials
+	if err := controllerutil.SetControllerReference(instance, vcap, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// TODO(user): Change this for the object type created by your controller
-	// Check if the Deployment already exists
-	found := &appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
+	// Check if the Secret already exists
+	found := &corev1.Secret{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: vcap.Name, Namespace: vcap.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Create(context.TODO(), deploy)
+		log.Info("Creating Secret", "namespace", vcap.Namespace, "name", vcap.Name)
+		err = r.Create(context.TODO(), vcap)
 		return reconcile.Result{}, err
 	} else if err != nil {
 		return reconcile.Result{}, err
@@ -154,9 +156,9 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// TODO(user): Change this for the object type created by your controller
 	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-		found.Spec = deploy.Spec
-		log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
+	if !reflect.DeepEqual(vcap.StringData, found.StringData) {
+		found.StringData = vcap.StringData
+		log.Info("Updating Secret", "namespace", vcap.Namespace, "name", vcap.Name)
 		err = r.Update(context.TODO(), found)
 		if err != nil {
 			return reconcile.Result{}, err
