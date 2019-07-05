@@ -31,12 +31,20 @@ spec:
             host:
               description: Host is the hostname or IP address for the service
               type: string
+            hostKey:
+              description: HostKey is the key for the host in the secret specified
+                by SecretRef
+              type: string
             passwordKey:
               description: PasswordKey is the key for the password in the secret specified
                 by SecretRef
               type: string
             port:
               description: Port is the port used by the service
+              type: string
+            portKey:
+              description: PortKey is the key for the port in the secret specified
+                by SecretRef
               type: string
             secretRef:
               description: SecretRef is a reference to a Secret containing the credentials
@@ -45,8 +53,16 @@ spec:
               description: URI is the service URI that can be used to connect to the
                 service
               type: string
+            uriKey:
+              description: URIKey is the key for the URI in the secret specified by
+                SecretRef
+              type: string
             username:
-              description: Host is the hostname or IP address for the service
+              description: Username is the username to use for connecting to the service
+              type: string
+            usernameKey:
+              description: UsernameKey is the key for the username in the secret specified
+                by SecretRef
               type: string
           type: object
         status:
