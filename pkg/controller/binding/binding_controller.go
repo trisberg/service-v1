@@ -17,6 +17,8 @@ package binding
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	servicev1alpha1 "github.com/trisberg/service/pkg/apis/service/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -121,61 +123,74 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 			"name": instance.Name,
 		},
 	}
-	credentials := "{\"name\": \"" + instance.Name + "\""
-	if instance.Spec.URI != "" || instance.Spec.URIKey != "" {
-		uri := instance.Spec.URI
-		if instance.Spec.URIKey != "" {
-			value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.URIKey)
-			if len(value) > 0 {
-				uri = string(value)
+	creds := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, "credentials")
+	var credentials string
+	if len(creds) > 0 {
+		credentials = string(getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, "credentials"))
+		var credMap map[string]interface{}
+		if err := json.Unmarshal(creds, &credMap); err != nil {
+			log.Info("Oops, error parsing creds", "err", err.Error())
+		}
+		credSecret.StringData["uri"] = fmt.Sprintf("%v", credMap["uri"])
+		credSecret.StringData["username"] = fmt.Sprintf("%v", credMap["username"])
+		credSecret.StringData["password"] = fmt.Sprintf("%v", credMap["password"])
+	} else {
+		credentials = "{\"name\": \"" + instance.Name + "\""
+		if instance.Spec.URI != "" || instance.Spec.URIKey != "" {
+			uri := instance.Spec.URI
+			if instance.Spec.URIKey != "" {
+				value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.URIKey)
+				if len(value) > 0 {
+					uri = string(value)
+				}
 			}
+			credSecret.StringData["uri"] = uri
+			credentials += ", \"uri\": \"" + instance.Spec.URI + "\""
 		}
-		credSecret.StringData["uri"] = uri
-		credentials += ", \"uri\": \"" + instance.Spec.URI + "\""
-	}
-	if instance.Spec.Host != "" || instance.Spec.HostKey != "" {
-		host := instance.Spec.Host
-		if instance.Spec.HostKey != "" {
-			value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.HostKey)
-			if len(value) > 0 {
-				host = string(value)
+		if instance.Spec.Host != "" || instance.Spec.HostKey != "" {
+			host := instance.Spec.Host
+			if instance.Spec.HostKey != "" {
+				value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.HostKey)
+				if len(value) > 0 {
+					host = string(value)
+				}
 			}
+			credSecret.StringData["host"] = host
+			credentials += ", \"host\": \"" + host + "\""
 		}
-		credSecret.StringData["host"] = host
-		credentials += ", \"host\": \"" + host + "\""
-	}
-	if instance.Spec.Port != "" || instance.Spec.PortKey != "" {
-		port := instance.Spec.Port
-		if instance.Spec.PortKey != "" {
-			value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.PortKey)
-			if len(value) > 0 {
-				port = string(value)
+		if instance.Spec.Port != "" || instance.Spec.PortKey != "" {
+			port := instance.Spec.Port
+			if instance.Spec.PortKey != "" {
+				value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.PortKey)
+				if len(value) > 0 {
+					port = string(value)
+				}
 			}
+			credSecret.StringData["port"] = port
+			credentials += ", \"port\": " + port
 		}
-		credSecret.StringData["port"] = port
-		credentials += ", \"port\": " + port
-	}
-	if instance.Spec.Username != "" || instance.Spec.UsernameKey != "" {
-		username := instance.Spec.Username
-		if instance.Spec.UsernameKey != "" {
-			value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.UsernameKey)
-			if len(value) > 0 {
-				username = string(value)
+		if instance.Spec.Username != "" || instance.Spec.UsernameKey != "" {
+			username := instance.Spec.Username
+			if instance.Spec.UsernameKey != "" {
+				value := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, instance.Spec.UsernameKey)
+				if len(value) > 0 {
+					username = string(value)
+				}
 			}
+			credSecret.StringData["username"] = username
+			credentials += ", \"username\": \"" + username + "\""
 		}
-		credSecret.StringData["username"] = username
-		credentials += ", \"username\": \"" + username + "\""
-	}
-	if instance.Spec.SecretRef != "" {
-		passwordKey := "password"
-		if instance.Spec.PasswordKey != "" {
-			passwordKey = instance.Spec.PasswordKey
+		if instance.Spec.SecretRef != "" {
+			passwordKey := "password"
+			if instance.Spec.PasswordKey != "" {
+				passwordKey = instance.Spec.PasswordKey
+			}
+			password := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, passwordKey)
+			credSecret.StringData["password"] = string(password)
+			credentials += ", \"password\": \"" + string(password) + "\""
 		}
-		password := getSecretValue(r.Client, context.TODO(), instance.Namespace, instance.Spec.SecretRef, passwordKey)
-		credSecret.StringData["password"] = string(password)
-		credentials += ", \"password\": \"" + string(password) + "\""
+		credentials += "}"
 	}
-	credentials += "}"
 	credSecret.StringData["credentials"] = credentials
 	//credSecret.StringData["vcap.services"] =
 	//	"{\"mysql\":[{\"name\": \"" + instance.Name + "\", \"credentials\": " + credentials + "}]}"
