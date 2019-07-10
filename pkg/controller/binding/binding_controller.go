@@ -134,6 +134,7 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 		credSecret.StringData["uri"] = fmt.Sprintf("%v", credMap["uri"])
 		credSecret.StringData["username"] = fmt.Sprintf("%v", credMap["username"])
 		credSecret.StringData["password"] = fmt.Sprintf("%v", credMap["password"])
+		credSecret.StringData["host"] = fmt.Sprintf("%v", credMap["host"])
 	} else {
 		credentials = "{\"name\": \"" + instance.Name + "\""
 		if instance.Spec.URI != "" || instance.Spec.URIKey != "" {
@@ -157,6 +158,8 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 			credSecret.StringData["host"] = host
 			credentials += ", \"host\": \"" + host + "\""
+		} else {
+			credSecret.StringData["host"] = ""
 		}
 		if instance.Spec.Port != "" || instance.Spec.PortKey != "" {
 			port := instance.Spec.Port
@@ -227,6 +230,10 @@ func getSecretValue(c client.Client, ctx context.Context, namespace string, name
 	log.Info("Reading Secret", "namespace", namespace, "name", name)
 	secret := &corev1.Secret{}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, secret)
+	if errors.IsNotFound(err) {
+		log.Info("Reading Secret", "namespace", "default", "name", name)
+		err = c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "default"}, secret)
+	}
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Oops, not found")
