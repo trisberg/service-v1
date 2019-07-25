@@ -34,7 +34,7 @@ import (
 var c client.Client
 
 var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo-credentials", Namespace: "default"}
+var depKey = types.NamespacedName{Name: "foo-binding", Namespace: "default"}
 
 const timeout = time.Second * 5
 
@@ -82,6 +82,6 @@ func TestReconcile(t *testing.T) {
 
 	// Manually delete Deployment since GC isn't enabled in the test control plane
 	g.Eventually(func() error { return c.Delete(context.TODO(), secret) }, timeout).
-		Should(gomega.MatchError("secrets \"foo-credentials\" not found"))
+		Should(gomega.MatchError("secrets \"foo-binding\" not found"))
 
 }

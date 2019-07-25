@@ -113,10 +113,14 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// TODO(user): Change this to be the object type created by your controller
 	// Define the desired Deployment object
+	bindingSecret := instance.Name + "-binding"
+	if instance.Spec.BindingSecret != "" {
+		bindingSecret = instance.Spec.BindingSecret
+	}
 	credSecret := &corev1.Secret{
 		Type: corev1.SecretTypeOpaque,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-credentials",
+			Name:      bindingSecret,
 			Namespace: instance.Namespace,
 		},
 		StringData: map[string]string{
@@ -132,6 +136,7 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 			log.Info("Oops, error parsing creds", "err", err.Error())
 		}
 		credSecret.StringData["uri"] = fmt.Sprintf("%v", credMap["uri"])
+		credSecret.StringData["jdbcUrl"] = fmt.Sprintf("jdbc:%v", credMap["uri"])
 		credSecret.StringData["username"] = fmt.Sprintf("%v", credMap["username"])
 		credSecret.StringData["password"] = fmt.Sprintf("%v", credMap["password"])
 		credSecret.StringData["host"] = fmt.Sprintf("%v", credMap["host"])
@@ -146,7 +151,9 @@ func (r *ReconcileBinding) Reconcile(request reconcile.Request) (reconcile.Resul
 				}
 			}
 			credSecret.StringData["uri"] = uri
+			credSecret.StringData["jdbcUrl"] = "jdbc:" + uri
 			credentials += ", \"uri\": \"" + instance.Spec.URI + "\""
+			credentials += ", \"jdbcUrl\": \"jdbc:" + instance.Spec.URI + "\""
 		}
 		if instance.Spec.Host != "" || instance.Spec.HostKey != "" {
 			host := instance.Spec.Host

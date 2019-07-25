@@ -30,6 +30,12 @@ import (
 	"strings"
 )
 
+const (
+	BindingTypeAnnotation     = "service.projectriff.io/binding-type"
+	BindingProfilesAnnotation = "service.projectriff.io/binding-profiles"
+	BindingSecretsAnnotation  = "service.projectriff.io/binding-secrets"
+)
+
 var log = logf.Log.WithName("service.binding.deployment.webhook")
 
 func init() {
@@ -54,28 +60,32 @@ type DeploymentCreateUpdateHandler struct {
 
 func (h *DeploymentCreateUpdateHandler) mutatingDeploymentFn(ctx context.Context, obj *appsv1.Deployment) error {
 	// TODO(user): implement your admission logic
+
 	ann := obj.Annotations
 	boot := false
-	if ann["service.projectriff.io/binding-type"] != "" {
-		log.Info("Deployment:", "name", obj.Name, "service.projectriff.io/binding-type", ann["service.projectriff.io/binding-type"])
+	if ann[BindingTypeAnnotation] != "" {
+		log.Info("Deployment:", "name", obj.Name, BindingTypeAnnotation, ann[BindingTypeAnnotation])
 		boot = true
 	}
 	profile := ""
-	if ann["service.projectriff.io/binding-profiles"] != "" {
-		log.Info("Deployment:", "name", obj.Name, "service.projectriff.io/binding-profiles", ann["service.projectriff.io/binding-profiles"])
-		profile = ann["service.projectriff.io/binding-profiles"]
+	if ann[BindingProfilesAnnotation] != "" {
+		log.Info("Deployment:", "name", obj.Name, BindingProfilesAnnotation, ann[BindingProfilesAnnotation])
+		profile = ann[BindingProfilesAnnotation]
 	}
-	if ann["service.projectriff.io/binding-secrets"] != "" {
-		secretRef := ann["service.projectriff.io/binding-secrets"]
-		secretPrefix := secretRef + "_"
+	if ann[BindingSecretsAnnotation] != "" {
+		secretRef, secretPrefix := splitNameAndPrefix(ann[BindingSecretsAnnotation])
 		if strings.Contains(secretPrefix, "-") {
 			secretPrefix = secretPrefix[0:strings.Index(secretPrefix, "-")] + "_"
 		}
 		log.Info("Deployment:", "name", obj.Name,
-			"service.projectriff.io/binding-secrets", ann["service.projectriff.io/binding-secrets"],
+			BindingSecretsAnnotation, secretRef,
 			"prefix", secretPrefix)
 		if boot {
 			//ToDo
+			setEnvVarSecret(secretPrefix+"uri", secretRef, "uri", obj)
+			setEnvVarSecret("SPRING_DATASOURCE_URL", secretRef, "jdbcUrl", obj)
+			setEnvVarSecret("SPRING_DATASOURCE_USERNAME", secretRef, "username", obj)
+			setEnvVarSecret("SPRING_DATASOURCE_PASSWORD", secretRef, "password", obj)
 		} else {
 			envFromFound := false
 			for _, envFrom := range obj.Spec.Template.Spec.Containers[0].EnvFrom {
@@ -98,28 +108,82 @@ func (h *DeploymentCreateUpdateHandler) mutatingDeploymentFn(ctx context.Context
 					})
 			}
 			if profile != "" {
-				envVar := "SPRING_PROFILES_ACTIVE"
-				envFound := false
-				for i, env := range obj.Spec.Template.Spec.Containers[0].Env {
-					log.Info("Env:", "name", env.Name)
-					if env.Name == envVar {
-						obj.Spec.Template.Spec.Containers[0].Env[i].Value = profile
-						envFound = true
-						log.Info("Env:", "FOUND", envVar)
-						break
-					}
-				}
-				if !envFound {
-					obj.Spec.Template.Spec.Containers[0].Env = append(obj.Spec.Template.Spec.Containers[0].Env,
-						v1.EnvVar{
-							Name:  envVar,
-							Value: profile,
-						})
-				}
+				setEnvVar("SPRING_PROFILES_ACTIVE", profile, obj)
 			}
 		}
 	}
 	return nil
+}
+
+func setEnvVarSecret(name string, ref string, key string, obj *appsv1.Deployment) {
+	envFound := false
+	for i, env := range obj.Spec.Template.Spec.Containers[0].Env {
+		log.Info("Env:", "name", env.Name)
+		if env.Name == name {
+			obj.Spec.Template.Spec.Containers[0].Env[i].ValueFrom = &v1.EnvVarSource{
+				SecretKeyRef: &v1.SecretKeySelector{
+					Key: key,
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: ref,
+					},
+				},
+			}
+			envFound = true
+			log.Info("Env:", "FOUND", name, "SET-TO", ref+":"+key)
+			break
+		}
+	}
+	if !envFound {
+		obj.Spec.Template.Spec.Containers[0].Env = append(obj.Spec.Template.Spec.Containers[0].Env,
+			v1.EnvVar{
+				Name: name,
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						Key: key,
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: ref,
+						},
+					},
+				},
+			})
+		log.Info("Env:", "ADDED", name, "SET-TO", ref+":"+key)
+	}
+}
+
+func setEnvVar(name string, value string, obj *appsv1.Deployment) {
+	envFound := false
+	for i, env := range obj.Spec.Template.Spec.Containers[0].Env {
+		log.Info("Env:", "name", env.Name)
+		if env.Name == name {
+			obj.Spec.Template.Spec.Containers[0].Env[i].Value = value
+			envFound = true
+			log.Info("Env:", "FOUND", name, "SET-TO", value)
+			break
+		}
+	}
+	if !envFound {
+		obj.Spec.Template.Spec.Containers[0].Env = append(obj.Spec.Template.Spec.Containers[0].Env,
+			v1.EnvVar{
+				Name:  name,
+				Value: value,
+			})
+		log.Info("Env:", "ADDED", name, "SET-TO", value)
+	}
+}
+
+func splitNameAndPrefix(s string) (string, string) {
+	var name string
+	var prefix string
+	if strings.Contains(s, ":") {
+		prefix = s[0:strings.Index(s, ":")] + "_"
+		name = s[strings.Index(s, ":")+1:]
+	} else {
+		if strings.Contains(s, "-") {
+			prefix = s[0:strings.Index(s, "-")] + "_"
+			name = s
+		}
+	}
+	return name, prefix
 }
 
 var _ admission.Handler = &DeploymentCreateUpdateHandler{}

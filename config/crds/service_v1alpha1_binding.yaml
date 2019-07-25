@@ -28,6 +28,10 @@ spec:
           type: object
         spec:
           properties:
+            bindingSecret:
+              description: SecretRef is the name of the Binding Secret that is created
+                with the credentials
+              type: string
             host:
               description: Host is the hostname or IP address for the service
               type: string
