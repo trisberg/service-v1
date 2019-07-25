@@ -214,6 +214,14 @@
   version = "v1.1.6"
 
 [[projects]]
+  branch = "master"
+  digest = "1:9cbe750f23cff83db1169e684c7f65a1a3d9c71b44d35279ed9d5177eb0bf807"
+  name = "github.com/knative/pkg"
+  packages = ["ptr"]
+  pruneopts = "T"
+  revision = "74c5d67ea097dd45bc66a6e2212ff70058efe005"
+
+[[projects]]
   digest = "1:3804a3a02964db8e6db3e5e7960ac1c1a9b12835642dd4f4ac4e56c749ec73eb"
   name = "github.com/markbates/inflect"
   packages = ["."]
@@ -657,6 +665,9 @@
   packages = [
     "pkg/apis/apiextensions",
     "pkg/apis/apiextensions/v1beta1",
+    "pkg/client/clientset/clientset",
+    "pkg/client/clientset/clientset/scheme",
+    "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "T"
   revision = "d002e88f6236312f0289d9d1deab106751718ff0"
@@ -854,6 +865,9 @@
     "pkg/client/apiutil",
     "pkg/client/config",
     "pkg/controller",
+    "pkg/controller/controllerutil",
+    "pkg/envtest",
+    "pkg/envtest/printer",
     "pkg/event",
     "pkg/handler",
     "pkg/internal/controller",
@@ -869,11 +883,18 @@
     "pkg/recorder",
     "pkg/runtime/inject",
     "pkg/runtime/log",
+    "pkg/runtime/scheme",
     "pkg/runtime/signals",
     "pkg/source",
     "pkg/source/internal",
+    "pkg/webhook",
     "pkg/webhook/admission",
+    "pkg/webhook/admission/builder",
     "pkg/webhook/admission/types",
+    "pkg/webhook/internal/cert",
+    "pkg/webhook/internal/cert/generator",
+    "pkg/webhook/internal/cert/writer",
+    "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/internal/metrics",
     "pkg/webhook/types",
   ]
@@ -924,20 +945,46 @@
   analyzer-version = 1
   input-imports = [
     "github.com/emicklei/go-restful",
+    "github.com/knative/pkg/ptr",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "golang.org/x/net/context",
+    "k8s.io/api/admissionregistration/v1beta1",
+    "k8s.io/api/core/v1",
+    "k8s.io/api/extensions/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
+    "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/runtime/serializer",
+    "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/runtime",
+    "k8s.io/apimachinery/pkg/watch",
+    "k8s.io/client-go/discovery",
+    "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/rest",
+    "k8s.io/client-go/util/flowcontrol",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
+    "sigs.k8s.io/controller-runtime/pkg/envtest",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/reconcile",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/inject",
     "sigs.k8s.io/controller-runtime/pkg/runtime/log",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/controller-runtime/pkg/webhook",
+    "sigs.k8s.io/controller-runtime/pkg/webhook/admission",
+    "sigs.k8s.io/controller-runtime/pkg/webhook/admission/builder",
+    "sigs.k8s.io/controller-runtime/pkg/webhook/admission/types",
     "sigs.k8s.io/controller-tools/cmd/controller-gen",
     "sigs.k8s.io/testing_frameworks/integration",
   ]
