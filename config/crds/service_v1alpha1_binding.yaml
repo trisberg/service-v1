@@ -29,8 +29,12 @@ spec:
         spec:
           properties:
             bindingSecret:
-              description: SecretRef is the name of the Binding Secret that is created
-                with the credentials
+              description: BindingSecret is the name of the Binding Secret that is
+                created with the credentials
+              type: string
+            bindingType:
+              description: BindingType is the type of the Binding Secret to create,
+                'keys' or 'config-yaml:prefix' or 'config-properties:prefix'
               type: string
             host:
               description: Host is the hostname or IP address for the service

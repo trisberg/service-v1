@@ -26,8 +26,10 @@ import (
 // INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 // Important: Run "make" to regenerate code after modifying this file
 type BindingSpec struct {
-	// SecretRef is the name of the Binding Secret that is created with the credentials
+	// BindingSecret is the name of the Binding Secret that is created with the credentials
 	BindingSecret string `json:"bindingSecret,omitempty"`
+	// BindingType is the type of the Binding Secret to create, 'keys' or 'config-yaml:prefix' or 'config-properties:prefix'
+	BindingType string `json:"bindingType,omitempty"`
 	// SecretRef is a reference to a Secret containing the credentials
 	SecretRef string `json:"secretRef,omitempty"`
 	// URI is the service URI that can be used to connect to the service
